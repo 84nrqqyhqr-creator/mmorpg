@@ -12,8 +12,10 @@ There is no Godot binary in the cloud container, so none of these can run there.
 
 - Run the client: open the project in the editor and press Play. `run/main_scene` points at `client/client.tscn`.
 - Run the server locally (headless): `godot --headless --path . res://server/server.tscn`. It listens on `0.0.0.0:8080`.
-- Test against a local server: change `SERVER_URL` in `client/client.gd` from the production IP to `ws://127.0.0.1:8080`.
+- Point a desktop client at a local server: `godot --path . -- --server=ws://127.0.0.1:8080` (the default is `DEFAULT_SERVER_URL` in `client/client.gd`). Web builds connect to the page's own host (`wss://` on https), or to a `?server=ws://...` URL parameter.
 - Export and deploy the server: `./deploy_server.sh`. It exports with the `ServerLinux` preset to `exports/server/build/latest/`, copies `server.x86_64`, `server.pck` and `server.sh` to `gamestudio@64.225.2.31`, swaps them into `/home/gamestudio/srv/game/bin`, restarts the `mmorpg-server.service` systemd unit, then checks that port 8080 is listening and that the unit's MainPID is `server.x86_64`. The remote user needs passwordless `sudo` for `systemctl`.
+
+- Export and deploy the web client: `./deploy_web.sh`. It exports the `Web` preset (threads off, so no COOP/COEP headers are needed) and rsyncs it to `/var/www/mmorpg` on the server. Caddy (`deploy/Caddyfile`) serves those files at `https://64-225-2-31.sslip.io` and sends WebSocket upgrades on the same host to `127.0.0.1:8080`, so the Godot server needs no TLS code. One-time server setup is in `deploy/WEB_SETUP.md`.
 
 ## Architecture
 

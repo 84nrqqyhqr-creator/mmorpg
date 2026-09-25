@@ -4,7 +4,9 @@ var dot := ColorRect.new() # You
 var other_dots: Dictionary = {} # other players: player_id -> ColorRect
 var click_marker := ColorRect.new() # Mouse Click Marker
 
-const SERVER_URL: String = "ws://64.225.2.31:8080"
+# Desktop builds connect here. Override with: godot -- --server=ws://127.0.0.1:8080
+# Web builds connect to the page's own host (wss:// on https), or ?server=... in the URL.
+const DEFAULT_SERVER_URL: String = "ws://64.225.2.31:8080"
 
 var status_label: Label
 var ws: WebSocketPeer = WebSocketPeer.new()
@@ -127,12 +129,27 @@ func _connect_now(reason: String) -> void:
 	player_id = -1
 	
 	status_label.text = "Status: %s" % reason
-	var err: int = ws.connect_to_url(SERVER_URL)
+	var err: int = ws.connect_to_url(_get_server_url())
 	last_rx_ms = Time.get_ticks_msec()
 	if err != OK:
 		status_label.text = "Status: Connect failed (%d). Retrying…" % err
 		_schedule_reconnect()
 	
+func _get_server_url() -> String:
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--server="):
+			return arg.trim_prefix("--server=")
+
+	if OS.has_feature("web"):
+		var override := str(JavaScriptBridge.eval("new URLSearchParams(location.search).get('server') || ''"))
+		if override != "":
+			return override
+		var https := str(JavaScriptBridge.eval("location.protocol")) == "https:"
+		var host := str(JavaScriptBridge.eval("location.host"))
+		return ("wss://" if https else "ws://") + host
+
+	return DEFAULT_SERVER_URL
+
 func _schedule_reconnect() -> void:
 	var now: int = Time.get_ticks_msec()
 	reconnect_at_ms = now + int(reconnect_delay * 1000.0)
