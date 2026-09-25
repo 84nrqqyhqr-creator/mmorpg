@@ -1,0 +1,16 @@
+# HTTPS front door for the game. Caddy gets a free Let's Encrypt certificate
+# automatically. sslip.io turns the IP into a hostname, so no domain is needed.
+64-225-2-31.sslip.io {
+	encode zstd gzip
+
+	# WebSocket upgrades go to the Godot server (wss:// -> ws://127.0.0.1:8080)
+	@ws {
+		header Connection *Upgrade*
+		header Upgrade websocket
+	}
+	reverse_proxy @ws 127.0.0.1:8080
+
+	# Everything else is the web client exported by deploy_web.sh
+	root * /var/www/mmorpg
+	file_server
+}
